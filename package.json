@@ -1,0 +1,29 @@
+{
+  "name": "uszipsproject",
+  "version": "1.0.0",
+  "description": "MongoDB project that makes statistical computations on a US zips dataset",
+  "main": "getUsZipsData.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mariandanGit/USzipsProject.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mariandanGit/USzipsProject/issues"
+  },
+  "homepage": "https://github.com/mariandanGit/USzipsProject#readme",
+  "dependencies": {
+    "axios": "^1.4.0",
+    "express": "^4.18.2",
+    "mongoose": "^7.1.1"
+  },
+  "devDependencies": {
+    "dotenv": "^16.0.3",
+    "nodemon": "^2.0.22"
+  }
+}

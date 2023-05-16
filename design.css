@@ -1,0 +1,135 @@
+@import url('https://fonts.googleapis.com/css?family=Sen');
+body { 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Sen', 'Arial Narrow', Arial, sans-serif;
+}
+#map { 
+    position: absolute; 
+    top: 0; 
+    bottom: 0; 
+    width: 100%; 
+}
+#nav-bar-header{
+    color: rgb(246, 246, 246);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60%;
+    height: 40px;
+    position: absolute;
+    top:30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgb(241, 191, 66);
+    z-index: 2;
+    border-radius: 30px;
+    -webkit-box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.5); 
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.5);
+}
+#nav-bar-header:hover{
+    cursor: pointer;
+}
+#nav-bar-container{
+    display: none;
+    width: 60%;
+    height: 40px;
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    background-color: rgba(63, 63, 63, 0.8);
+    transform: translateX(-50%);
+    z-index: 1;
+    border-radius: 30px;
+    -webkit-box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.5); 
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.5);
+}
+#nav-bar-container.active{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 60%;
+    height: fit-content;
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    background-color: rgba(63, 63, 63, 0.8);
+    transform: translateX(-50%);
+    z-index: 1;
+    border-radius: 30px;
+}
+#nav-bar-container ul{
+    height: 100%;
+    margin-top: 100px;
+    color: rgb(231, 231, 231);
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    list-style-type: none;
+}
+#nav-bar-container li{
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    height: 50px;
+    width: 90%;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 5px;
+    background-color: rgba(63, 63, 63);
+}
+#nav-bar-container li:hover{
+    cursor: pointer;
+}
+.yellow-icon {
+    color: rgb(241, 191, 66);
+}
+#drop-button{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 25px;
+    justify-content: end;
+    color:rgb(0, 0, 0);
+    width: 60px;
+    height: 60px;
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    background-color: rgb(255, 255, 255);
+    transform: translateX(-50%);
+    z-index: 1;
+    border-radius: 0 0 50% 50%;
+}
+#drop-button:hover{
+    cursor: pointer;
+}
+@media only screen and (max-width: 767px) {
+    #nav-bar-header{
+        width: 90%;
+    }
+    #nav-bar-container.active{
+        width: 90%;
+    }
+}
+@media only screen and (min-width: 768px) and (max-width: 991px) {
+    /* CSS rules for medium screens */
+}
+@media only screen and (min-width: 992px) and (max-width: 1199px) {
+
+}
+@media only screen and (min-width: 1200px) {
+    #nav-bar-header{
+        max-width: 1000px;
+    }
+    #nav-bar-container{
+        max-width: 1000px;
+    }
+}
+@media only screen and (orientation: landscape) {
+    /* CSS rules for landscape orientation */
+}
+@media only screen and (orientation: portrait) {
+    /* CSS rules for portrait orientation */
+}
+  
