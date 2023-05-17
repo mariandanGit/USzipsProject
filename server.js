@@ -1,50 +1,205 @@
 const express = require('express');
-const MongoClient = require('mongodb').MongoClient;
-
+const mongodb = require('mongodb');
+const cors = require('cors');
 const app = express();
-const port = 5500;
-const mongoURI = 'mongodb://localhost:27017'; // Replace 'yourDatabaseName' with the actual name of your MongoDB database
+const port = 3000;
+const mongoURL = 'mongodb://localhost:27017'; 
+const dbName = 'admin';
 
-// Connect to MongoDB
-MongoClient.connect(mongoURI, { useUnifiedTopology: true })
-  .then(client => {
-    console.log('Connected to MongoDB');
-    const db = client.db();
+app.use(cors());
 
-    // Define your routes here
+app.get('/population/10-million', async (req, res) => {
+    let client;
+    try {
+        client = await mongodb.MongoClient.connect(mongoURL);
+        const db = client.db(dbName);
+        const collection = db.collection('US-zips-data');
 
-    // Route for getting states with a total population over 10 million
-    app.get('/states', (req, res) => {
-      const collection = db.collection('US-zips-data'); // Replace 'yourCollectionName' with the actual name of your collection
+        const result = await collection
+          .aggregate([
+            {
+              $group: {
+                _id: '$state_name',
+                totalPopulation: { $sum: '$population' },
+              },
+            },
+            {
+              $match: {
+                totalPopulation: { $gt: 10000000 },
+              },
+            },
+          ])
+          .toArray();
 
-      collection.aggregate([
+        const states = result.map((state) => state._id);
+        res.json(states);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'An error occurred' });
+    } finally {
+        client.close();
+    }
+});
+
+app.get('/population/state-average', async (req, res) => {
+  let client;
+  try {
+    client = await mongodb.MongoClient.connect(mongoURL);
+    const db = client.db(dbName);
+    const collection = db.collection('US-zips-data');
+
+    const result = await collection.aggregate([
+      {
+        $group: {
+          _id: {
+            state_id: '$state_id',
+            state_name: '$state_name',
+            city: '$city'
+          },
+          population: {
+            $sum: '$population',
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$_id.state_id',
+          state_name: { $first: '$_id.state_name' },
+          averageCityPopulation: {
+            $avg: '$population',
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          state_id: '$_id',
+          state_name: 1,
+          averageCityPopulation: { $round: ['$averageCityPopulation', 0] } // Round the averageCityPopulation field
+        },
+      },
+    ]).toArray();
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred' });
+  } finally {
+    client.close();
+  }
+});
+
+app.get('/population/smallest-city', async (req, res) => {
+  let client;
+  try {
+    client = await mongodb.MongoClient.connect(mongoURL);
+    const db = client.db(dbName);
+    const collection = db.collection('US-zips-data');
+
+    const states = await collection.distinct('state_name');
+    const result = [];
+
+    for (const state of states) {
+      const pipeline = [
+        {
+          $match: { state_name: state }
+        },
         {
           $group: {
-            _id: '$state_name',
-            totalPopulation: { $sum: '$population' }
+            _id: { city: "$city" },
+            suma_populatie: { $sum: "$population" }
           }
         },
         {
-          $match: {
-            totalPopulation: { $gt: 10000000 }
+          $sort: {
+            suma_populatie: 1
           }
+        },
+        {
+          $limit: 1
         }
-      ]).toArray((err, result) => {
-        if (err) {
-          console.error('Error retrieving states:', err);
-          res.status(500).json({ error: 'An error occurred' });
-        } else {
-          const states = result.map(state => state._id);
-          res.json(states);
-        }
-      });
-    });
+      ];
 
-    // Start the server
-    app.listen(port, () => {
-      console.log(`Server listening on port ${port}`);
-    });
-  })
-  .catch(err => {
-    console.error('Error connecting to MongoDB:', err);
-  });
+      const stateResult = await collection.aggregate(pipeline).toArray();
+
+      if (stateResult.length > 0) {
+        const smallestCity = stateResult[0];
+        result.push({
+          state: state,
+          city: smallestCity._id.city,
+          population: smallestCity.suma_populatie
+        });
+      }
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred' });
+  } finally {
+    if (client) {
+      client.close();
+    }
+  }
+});
+
+
+
+app.get('/population/largest-city', async (req, res) => {
+  let client;
+  try {
+    client = await mongodb.MongoClient.connect(mongoURL);
+    const db = client.db(dbName);
+    const collection = db.collection('US-zips-data');
+
+    const states = await collection.distinct('state_name');
+    const result = [];
+
+    for (const state of states) {
+      const pipeline = [
+        {
+          $match: { state_name: state }
+        },
+        {
+          $group: {
+            _id: { city: "$city" },
+            suma_populatie: { $sum: "$population" }
+          }
+        },
+        {
+          $sort: {
+            suma_populatie: -1
+          }
+        },
+        {
+          $limit: 1
+        }
+      ];
+
+      const stateResult = await collection.aggregate(pipeline).toArray();
+
+      if (stateResult.length > 0) {
+        const largestCity = stateResult[0];
+        result.push({
+          state: state,
+          city: largestCity._id.city,
+          population: largestCity.suma_populatie
+        });
+      }
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred' });
+  } finally {
+    if (client) {
+      client.close();
+    }
+  }
+});
+
+
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+});

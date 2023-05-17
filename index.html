@@ -30,23 +30,6 @@
         <i class="fa fa-caret-down"></i>
     </div>
     <div id="map"></div>
-    <script>
-        // Assuming you're using client-side JavaScript
-
-        // Make a GET request to the route on page load
-        window.addEventListener('load', () => {
-        fetch('/states/population/10million')
-            .then(response => response.json())
-            .then(states => {
-            console.log(states); // Log the result to the console
-            // Further processing of the states data, if needed
-            })
-            .catch(error => {
-            console.error('Error:', error);
-            });
-        });
-    </script>
 </body>
-
 <script src="script.js"></script>
 </html>
