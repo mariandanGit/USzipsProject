@@ -75,7 +75,7 @@ app.get('/population/state-average', async (req, res) => {
           _id: 0,
           state_id: '$_id',
           state_name: 1,
-          averageCityPopulation: { $round: ['$averageCityPopulation', 0] } // Round the averageCityPopulation field
+          averageCityPopulation: { $round: ['$averageCityPopulation', 0] }
         },
       },
     ]).toArray();
@@ -107,7 +107,9 @@ app.get('/population/smallest-city', async (req, res) => {
         {
           $group: {
             _id: { city: "$city" },
-            suma_populatie: { $sum: "$population" }
+            suma_populatie: { $sum: "$population" },
+            lat: { $first: "$lat" }, 
+            lng: { $first: "$lng" }
           }
         },
         {
@@ -127,7 +129,9 @@ app.get('/population/smallest-city', async (req, res) => {
         result.push({
           state: state,
           city: smallestCity._id.city,
-          population: smallestCity.suma_populatie
+          population: smallestCity.suma_populatie,
+          lat: smallestCity.lat,
+          lng: smallestCity.lng
         });
       }
     }
@@ -142,8 +146,6 @@ app.get('/population/smallest-city', async (req, res) => {
     }
   }
 });
-
-
 
 app.get('/population/largest-city', async (req, res) => {
   let client;
@@ -163,7 +165,9 @@ app.get('/population/largest-city', async (req, res) => {
         {
           $group: {
             _id: { city: "$city" },
-            suma_populatie: { $sum: "$population" }
+            suma_populatie: { $sum: "$population" },
+            lat: { $first: "$lat" }, 
+            lng: { $first: "$lng" }
           }
         },
         {
@@ -183,7 +187,9 @@ app.get('/population/largest-city', async (req, res) => {
         result.push({
           state: state,
           city: largestCity._id.city,
-          population: largestCity.suma_populatie
+          population: largestCity.suma_populatie,
+          lat: largestCity.lat,
+          lng: largestCity.lng
         });
       }
     }
@@ -199,6 +205,115 @@ app.get('/population/largest-city', async (req, res) => {
   }
 });
 
+app.get('/population/smallest-county', async (req, res) => {
+  let client;
+  try {
+    client = await mongodb.MongoClient.connect(mongoURL);
+    const db = client.db(dbName);
+    const collection = db.collection('US-zips-data');
+
+    const states = await collection.distinct('state_name');
+    const result = [];
+
+    for (const state of states) {
+      const pipeline = [
+        {
+          $match: { state_name: state }
+        },
+        {
+          $group: {
+            _id: { county_fips: "$county_fips", county_name: "$county_name" },
+            suma_populatie: { $sum: "$population" }
+          }
+        },
+        {
+          $sort: {
+            suma_populatie: 1
+          }
+        },
+        {
+          $limit: 1
+        }
+      ];
+
+      const stateResult = await collection.aggregate(pipeline).toArray();
+
+      if (stateResult.length > 0) {
+        const smallestCounty = stateResult[0];
+        result.push({
+          state: state,
+          county_fips: smallestCounty._id.county_fips,
+          county_name: smallestCounty._id.county_name,
+          population: smallestCounty.suma_populatie,
+        });
+      }
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred' });
+  } finally {
+    if (client) {
+      client.close();
+    }
+  }
+});
+
+app.get('/population/largest-county', async (req, res) => {
+  let client;
+  try {
+    client = await mongodb.MongoClient.connect(mongoURL);
+    const db = client.db(dbName);
+    const collection = db.collection('US-zips-data');
+
+    const states = await collection.distinct('state_name');
+    const result = [];
+
+    for (const state of states) {
+      const pipeline = [
+        {
+          $match: { state_name: state }
+        },
+        {
+          $group: {
+            _id: { county_fips: "$county_fips", county_name: "$county_name" },
+            suma_populatie: { $sum: "$population" }
+          }
+        },
+        {
+          $sort: {
+            suma_populatie: -1
+          }
+        },
+        {
+          $limit: 1
+        }
+      ];
+
+      const stateResult = await collection.aggregate(pipeline).toArray();
+
+      if (stateResult.length > 0) {
+        const smallestCounty = stateResult[0];
+        result.push({
+          state: state,
+          county_fips: smallestCounty._id.county_fips,
+          county_name: smallestCounty._id.county_name,
+          population: smallestCounty.suma_populatie,
+        });
+      }
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred' });
+  } finally {
+    if (client) {
+      client.close();
+    }
+  }
+});
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);

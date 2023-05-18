@@ -57,7 +57,6 @@ let avgPopulation;
 (async () => {
     try {
         avgPopulation = await avgPopulationByState();
-        console.log(avgPopulation);
     } catch (error) {
         console.error('Error:', error);
     }
@@ -84,7 +83,6 @@ async function getCentroidCoordinates() {
           features: features,
       };
 
-      console.log(geojson);
       return geojson;
   } catch (error) {
       console.error('Error fetching data:', error);
@@ -97,28 +95,78 @@ async function smallestCity() {
       const response = await fetch('http://localhost:3000/population/smallest-city');
       const data = await response.json();
 
-      console.log(data);
-    } catch (error) {
+      const features = data.map(city => ({
+        type: 'Feature',
+        geometry: {
+            type: 'Point',
+            coordinates: [city.lng, city.lat],
+        },
+    }));
+
+    const geojson = {
+        type: 'FeatureCollection',
+        features: features,
+    };
+
+    return geojson;
+  } catch (error) {
       console.error('Error fetching data:', error);
       throw error;
   }
 }
-
-smallestCity();
 
 async function largestCity() {
   try {
       const response = await fetch('http://localhost:3000/population/largest-city');
       const data = await response.json();
 
-      console.log(data);
+      const features = data.map(city => ({
+        type: 'Feature',
+        geometry: {
+            type: 'Point',
+            coordinates: [city.lng, city.lat],
+        },
+    }));
+
+    const geojson = {
+        type: 'FeatureCollection',
+        features: features,
+    };
+
+    return geojson;
     } catch (error) {
       console.error('Error fetching data:', error);
       throw error;
   }
 }
 
-largestCity();
+async function smallestCounty() {
+    try {
+      const response = await fetch('http://localhost:3000/population/smallest-county');
+      const data = await response.json();
+  
+      return data;
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      throw error;
+    }
+}
+
+smallestCounty();
+
+async function largestCounty() {
+    try {
+        const response = await fetch('http://localhost:3000/population/largest-county');
+        const data = await response.json();
+
+        return data;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        throw error;
+    }
+}
+
+largestCounty();
 
 mapboxgl.accessToken = 'pk.eyJ1IjoibWFyaWFuZGFuIiwiYSI6ImNsaHEwNjV3MTF6MDkzZXMxMXA3Y3g2MHQifQ.ctXan-bPt75vCnWVnsR2CQ';
 const map = new mapboxgl.Map({
@@ -130,11 +178,65 @@ const map = new mapboxgl.Map({
 
 map.on('load', () => {
 
-    // Set up the map source and layers
     map.addSource('states', {
         'type': 'geojson',
         'data': 'https://docs.mapbox.com/mapbox-gl-js/assets/us_states.geojson'
     });
+
+    map.addSource('counties', {
+        'type': 'geojson',
+        'data': '/counties.geojson'
+    });
+
+    (async () => {
+        try {
+          let smallestCounties = await smallestCounty();
+          console.log(smallestCounties);
+          map.addLayer({
+            id: 'smallest-counties',
+            type: 'fill',
+            source: 'counties',
+            paint: {
+              'fill-color': [
+                'match',
+                ['get', 'GEOID'],
+                smallestCounties.map(county => county.county_fips),
+                '#fad25c',
+                'rgba(0, 0, 0, 0)'
+              ],
+              'fill-opacity': 0.5
+            }
+          }, 'building');
+      
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      })();      
+    
+    (async () => {
+        try {
+          let largestCounties = await largestCounty();
+            
+          map.addLayer({
+            id: 'largest-counties',
+            type: 'fill',
+            source: 'counties',
+            paint: {
+              'fill-color': [
+                'match',
+                ['get', 'GEOID'],
+                    largestCounties.map(county => county.county_fips),
+                '#5cc7e8',
+                'rgba(0, 0, 0, 0)'
+              ],
+              'fill-opacity': 0.5
+            }
+          }, 'building');
+      
+        } catch (error) {
+          console.error('Error:', error);
+        }
+    })(); 
 
     map.addLayer({
         'id': 'state-fills',
@@ -148,8 +250,8 @@ map.on('load', () => {
                 'match',
                 ['get', 'STATE_NAME'],
                 highlightedStates,
-                '#fad25c', // Highlighted color
-                'rgba(0, 0, 0, 0)' // Default color (transparent)
+                '#fad25c', 
+                'rgba(0, 0, 0, 0)'
             ],
             'fill-opacity': 0.5
         }
@@ -167,8 +269,8 @@ map.on('load', () => {
                 'match',
                 ['get', 'STATE_NAME'],
                 highlightedStates,
-                '#ffc106', // Highlighted color
-                'rgba(0, 0, 0, 0)' // Default color (transparent)
+                '#ffc106',
+                'rgba(0, 0, 0, 0)'
             ],
             'line-width': 1
         }
@@ -202,10 +304,9 @@ map.on('load', () => {
     closeOnClick: false
   });
   
-  map.on('mouseenter', 'state-centers', (e) => {
+map.on('mouseenter', 'state-centers', (e) => {
     const stateId = e.features[0].properties.state_id;
 
-    // Find the state population from the population data based on the state ID
     const stateData = avgPopulation.find(state => state.state_id === stateId);
     if (stateData) {
         const population = stateData.averageCityPopulation;
@@ -219,4 +320,53 @@ map.on('load', () => {
 map.on('mouseleave', 'state-centers', () => {
     popup.remove();
 });
+
+(async () => {
+  try {
+      const geojson = await smallestCity();
+
+      map.addLayer({
+          'id': 'smallest-cities',
+          'type': 'circle',
+          'layout': {
+            'visibility': 'none'
+          },
+          'source': {
+              'type': 'geojson',
+              'data': geojson,
+          },
+          'paint': {
+              'circle-color': '#2fe55c',
+              'circle-radius': 4,
+          },
+      });
+  } catch (error) {
+      console.error('Error:', error);
+  }
+})();
+
+(async () => {
+  try {
+      const geojson = await largestCity();
+
+      map.addLayer({
+          'id': 'largest-cities',
+          'type': 'circle',
+          'layout': {
+            'visibility': 'none'
+          },
+          'source': {
+              'type': 'geojson',
+              'data': geojson,
+          },
+          'paint': {
+              'circle-color': '#2fe55c',
+              'circle-radius': 6,
+          },
+      });
+  } catch (error) {
+      console.error('Error:', error);
+  }
+})();
+
 });
