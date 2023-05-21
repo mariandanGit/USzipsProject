@@ -315,6 +315,101 @@ app.get('/population/largest-county', async (req, res) => {
   }
 });
 
+app.get('/zips/zips-near-willis', async (req, res) => {
+  let client;
+  try {
+    client = await mongodb.MongoClient.connect(mongoURL);
+    const db = client.db(dbName);
+    const collection = db.collection('US-zips-data');
+
+    const result = await collection.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [-87.635918, 41.878876]
+          },
+          distanceField: "distance",
+          spherical: true
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          zipCode: "$zip",
+          lat: 1,
+          lng: 1
+        }
+      },
+      {
+        $limit: 20
+      }
+    ]).toArray();
+    
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred', error: error.message });
+  } finally {
+    if (client) {
+      client.close();
+    }
+  }
+});
+
+app.get('/population/population-near-statue', async (req, res) => {
+  let client;
+  try {
+    client = await mongodb.MongoClient.connect(mongoURL);
+    const db = client.db(dbName);
+    const collection = db.collection('US-zips-data');
+
+    const result = await collection.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [-74.044502, 40.689247]
+          },
+          distanceField: "dist",
+          key: "location",
+          spherical: true
+        }
+      },
+      {
+        $match: {
+          dist: {
+            $gte: 50000,
+            $lte: 200000
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalPopulation: { $sum: "$population" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          totalPopulation: 1
+        }
+      }
+    ]).toArray();
+
+    res.json(result[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred', error: error.message });
+  } finally {
+    if (client) {
+      client.close();
+    }
+  }
+});
+
+
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });

@@ -10,6 +10,8 @@
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="design.css">
+    <script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
+    
 </head>
 
 <body>
@@ -18,14 +20,15 @@
     </div>
     <div id="nav-bar-container">
         <ul id="actions-list">
-            <li><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>States with a total population of over 10 million</li>
-            <li><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Average city population by state</li>
-            <li><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Largest and the smallest city in each state</li>
-            <li><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Largest and the smallest counties in each state</li>
-            <li><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Nearest 10 zips from one of Chicago's landmarks, the Willis Tower</li>
-            <li><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Total population situated between 50 and 200 kms around New York's landmark, the Statue of Liberty</li>
+          <li class="toggle-item" data-layer="state-fills,state-borders"><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>States with a total population of over 10 million</li>
+          <li class="toggle-item" data-layer="state-centers"><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Average city population by state</li>
+          <li class="toggle-item" data-layer="smallest-cities,largest-cities"><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Largest and the smallest city in each state</li>
+          <li class="toggle-item" data-layer="smallest-counties,largest-counties"><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Largest and the smallest counties in each state</li>
+          <li class="toggle-item" data-layer="zips-near-willis"><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Nearest 10 zips from one of Chicago's landmarks, the Willis Tower</li>
+          <li class="toggle-item" data-layer="circle-layer"><i class="fa fa-check-square" style="margin-right: 10px; font-size: 25px;"></i>Total population situated between 50 and 200 kms around New York's landmark, the Statue of Liberty</li>
         </ul>
-    </div>
+      </div>
+      
     <div id="drop-button">
         <i class="fa fa-caret-down"></i>
     </div>
