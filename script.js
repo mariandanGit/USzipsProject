@@ -42,15 +42,6 @@ async function statesOver10Million() {
         throw error;
     }
 }
-let highlightedStates;
-
-(async () => {
-    try {
-        highlightedStates = await statesOver10Million();
-    } catch (error) {
-        console.error('Error:', error);
-    }
-})();
 
 async function avgPopulationByState() {
     try {
@@ -105,12 +96,16 @@ async function smallestCity() {
     try {
         const response = await fetch('http://localhost:3000/population/smallest-city');
         const data = await response.json();
-
+        console.log(data);
         const features = data.map(city => ({
             type: 'Feature',
             geometry: {
                 type: 'Point',
                 coordinates: [city.lng, city.lat],
+            },
+            properties: {
+                city_name: city.city,
+                population: city.population,
             },
         }));
 
@@ -136,6 +131,10 @@ async function largestCity() {
             geometry: {
                 type: 'Point',
                 coordinates: [city.lng, city.lat],
+            },
+            properties: {
+                city_name: city.city,
+                population: city.population,
             },
         }));
 
@@ -180,8 +179,6 @@ async function zipsNearWillis() {
         const response = await fetch('http://localhost:3000/zips/zips-near-willis');
         const data = await response.json();
 
-        console.log(data);
-
         const features = data.map(zips => ({
             type: 'Feature',
             geometry: {
@@ -207,7 +204,6 @@ async function populationNearStatue() {
         const response = await fetch('http://localhost:3000/population/population-near-statue');
         const data = await response.json();
 
-        console.log(data);
         return data;
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -312,7 +308,7 @@ map.on('load', () => {
                     'data': geojson,
                 },
                 'paint': {
-                    'circle-color': '#2fe55c',
+                    'circle-color': '#fad25c',
                     'circle-radius': 4,
                 },
             });
@@ -321,43 +317,74 @@ map.on('load', () => {
         }
     })();
 
-    map.addLayer({
-        'id': 'state-fills',
-        'type': 'fill',
-        'source': 'states',
-        'layout': {
-            'visibility': 'none'
-        },
-        'paint': {
-            'fill-color': [
-                'match',
-                ['get', 'STATE_NAME'],
-                highlightedStates,
-                '#fad25c',
-                'rgba(0, 0, 0, 0)'
-            ],
-            'fill-opacity': 0.5
-        }
-    });
+    (async () => {
+        try {
+            let highlightedStates = await statesOver10Million();
+    
+            map.addLayer({
+                'id': 'state-fills',
+                'type': 'fill',
+                'source': 'states',
+                'layout': {
+                    'visibility': 'none'
+                },
+                'paint': {
+                    'fill-color': [
+                        'match',
+                        ['get', 'STATE_NAME'],
+                        highlightedStates.map(state => state.state_name),
+                        '#fad25c',
+                        'rgba(0, 0, 0, 0)'
+                    ],
+                    'fill-opacity': 0.5
+                }
+            });
+    
+            map.addLayer({
+                'id': 'state-borders',
+                'type': 'line',
+                'source': 'states',
+                'layout': {
+                    'visibility': 'none'
+                },
+                'paint': {
+                    'line-color': [
+                        'match',
+                        ['get', 'STATE_NAME'],
+                        highlightedStates.map(state => state.state_name),
+                        '#ffc106',
+                        'rgba(0, 0, 0, 0)'
+                    ],
+                    'line-width': 1
+                }
+            });
 
-    map.addLayer({
-        'id': 'state-borders',
-        'type': 'line',
-        'source': 'states',
-        'layout': {
-            'visibility': 'none'
-        },
-        'paint': {
-            'line-color': [
-                'match',
-                ['get', 'STATE_NAME'],
-                highlightedStates,
-                '#ffc106',
-                'rgba(0, 0, 0, 0)'
-            ],
-            'line-width': 1
+            const statePopup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false
+            });
+        
+            map.on('mousemove', 'state-fills', (e) => {
+                const stateId = e.features[0].properties.STATE_NAME;
+                const stateData = highlightedStates.find(state => state.state_name === stateId);
+                if (stateData) {
+                    statePopup.setHTML(`<h3>${stateData.state_name}</h3><p>Total population: ${stateData.totalPopulation}</p>`)
+                        .setLngLat(e.lngLat)
+                        .addTo(map);
+                    map.getCanvas().style.cursor = 'pointer';
+                }
+            });
+        
+            map.on('mouseleave', 'state-fills', () => {
+                map.getCanvas().style.cursor = '';
+                statePopup.remove();
+            });
+
+        } catch (error) {
+            console.error('Error:', error);
         }
-    });
+    })();
+
     (async () => {
         try {
             let smallestCounties = await smallestCounty();
@@ -487,84 +514,116 @@ map.on('load', () => {
         },
     });
 
-    map.on('mouseenter', 'circle-layer', (e) => {
+    const statuePopup = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false
+    });
+
+    map.on('mousemove', 'circle-layer', (e) => {
 
         const population = statuePopulation;
         if (population) {
-            popup.setLngLat(e.lngLat)
+            statuePopup.setLngLat(e.lngLat)
                 .setHTML(`<h3>Population around Statue of Liberty</h3><p>Population in the range 50 to 200 kilometers around the Statue: ${population.totalPopulation}</p>`)
                 .addTo(map);
         }
     });
 
     map.on('mouseleave', 'circle-layer', () => {
-        popup.remove();
+        statuePopup.remove();
     });
-    
+
     (async () => {
         try {
             const geojson = await getCentroidCoordinates();
 
+            let centerMarker = '/images/population.png'
+            map.loadImage(centerMarker, function(error, image) {
+                if (error) throw error;
+                map.addImage('population', image);
+            });
+            
             map.addLayer({
                 'id': 'state-centers',
-                'type': 'circle',
+                'type': 'symbol',
                 'layout': {
-                    'visibility': 'none'
+                    'visibility': 'none',
+                    'icon-image': 'population',
+                    'icon-size': 0.1
                 },
                 'source': {
                     'type': 'geojson',
                     'data': geojson,
                 },
-                'paint': {
-                    'circle-color': '#a1a1a1',
-                    'circle-radius': 6,
-                },
+            });
+
+            const averagePopulationPopup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false
+            });
+        
+            map.on('mousemove', 'state-centers', (e) => {
+                const stateId = e.features[0].properties.state_id;
+        
+                const stateData = avgPopulation.find(state => state.state_id === stateId);
+                if (stateData) {
+                    const population = stateData.averageCityPopulation;
+                    const stateName = stateData.state_name;
+                    averagePopulationPopup.setLngLat(e.features[0].geometry.coordinates)
+                        .setHTML(`<h3>${stateName}</h3><p>Average city population: ${population}</p>`)
+                        .addTo(map);
+                }
+            });
+        
+            map.on('mouseleave', 'state-centers', () => {
+                averagePopulationPopup.remove();
             });
         } catch (error) {
             console.error('Error:', error);
         }
     })();
-    const popup = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false
-    });
-
-    map.on('mouseenter', 'state-centers', (e) => {
-        const stateId = e.features[0].properties.state_id;
-
-        const stateData = avgPopulation.find(state => state.state_id === stateId);
-        if (stateData) {
-            const population = stateData.averageCityPopulation;
-            const stateName = stateData.state_name;
-            popup.setLngLat(e.features[0].geometry.coordinates)
-                .setHTML(`<h3>${stateName}</h3><p>Average city population: ${population}</p>`)
-                .addTo(map);
-        }
-    });
-
-    map.on('mouseleave', 'state-centers', () => {
-        popup.remove();
-    });
-
+    
     (async () => {
         try {
             const geojson = await smallestCity();
 
+            let smallestCityMarker = '/images/small-city.png'
+            map.loadImage(smallestCityMarker, function(error, image) {
+                if (error) throw error;
+                map.addImage('smallest-city-marker', image);
+            });
+
             map.addLayer({
                 'id': 'smallest-cities',
-                'type': 'circle',
+                'type': 'symbol',
                 'layout': {
-                    'visibility': 'none'
+                    'visibility': 'none',
+                    'icon-image': 'smallest-city-marker',
+                    'icon-size': 0.1
                 },
                 'source': {
                     'type': 'geojson',
                     'data': geojson,
-                },
-                'paint': {
-                    'circle-color': '#2fe55c',
-                    'circle-radius': 4,
-                },
+                }
             });
+
+            const smallestCityPopup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false
+            });
+
+            map.on('mousemove', 'smallest-cities', (e) => {
+                const cityName = e.features[0].properties.city_name;
+                const cityPopulation = e.features[0].properties.population;
+                smallestCityPopup.setLngLat(e.features[0].geometry.coordinates)
+                    .setHTML(`<h3>${cityName}</h3><p>City population: ${cityPopulation}</p>`)
+                    .addTo(map);
+            });
+        
+            map.on('mouseleave', 'smallest-cities', () => {
+                smallestCityPopup.remove();
+            });
+
         } catch (error) {
             console.error('Error:', error);
         }
@@ -574,21 +633,43 @@ map.on('load', () => {
         try {
             const geojson = await largestCity();
 
+            let largestCityMarker = '/images/large-city.png'
+            map.loadImage(largestCityMarker, function(error, image) {
+                if (error) throw error;
+                map.addImage('largest-city-marker', image);
+            });
+
             map.addLayer({
                 'id': 'largest-cities',
-                'type': 'circle',
+                'type': 'symbol',
                 'layout': {
-                    'visibility': 'none'
+                    'visibility': 'none',
+                    'icon-image': 'largest-city-marker',
+                    'icon-size': 0.1
                 },
                 'source': {
                     'type': 'geojson',
                     'data': geojson,
-                },
-                'paint': {
-                    'circle-color': '#2fe55c',
-                    'circle-radius': 6,
-                },
+                }
             });
+
+            const smallestCityPopup = new mapboxgl.Popup({
+                closeButton: false,
+                closeOnClick: false
+            });
+
+            map.on('mousemove', 'largest-cities', (e) => {
+                const cityName = e.features[0].properties.city_name;
+                const cityPopulation = e.features[0].properties.population;
+                smallestCityPopup.setLngLat(e.features[0].geometry.coordinates)
+                    .setHTML(`<h3>${cityName}</h3><p>City population: ${cityPopulation}</p>`)
+                    .addTo(map);
+            });
+        
+            map.on('mouseleave', 'largest-cities', () => {
+                smallestCityPopup.remove();
+            });
+
         } catch (error) {
             console.error('Error:', error);
         }

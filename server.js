@@ -28,11 +28,17 @@ app.get('/population/10-million', async (req, res) => {
                 totalPopulation: { $gt: 10000000 },
               },
             },
+            {
+              $project: {
+                state_name: '$_id',
+                totalPopulation: 1,
+                _id: 0,
+              },
+            }
           ])
           .toArray();
 
-        const states = result.map((state) => state._id);
-        res.json(states);
+        res.json(result);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'An error occurred' });
