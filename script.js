@@ -2,6 +2,7 @@ const dropButton = document.getElementById('drop-button');
 const header = document.getElementById('nav-bar-header');
 const container = document.getElementById('nav-bar-container');
 const listItems = document.querySelectorAll('#actions-list li');
+let statuePopulation;
 
 dropButton.addEventListener("click", function() {
     container.classList.toggle('active');
@@ -30,6 +31,8 @@ listItems.forEach((listItem) => {
       });
     });
   });
+
+//Functions to fetch data from the database
 
 async function statesOver10Million() {
     try {
@@ -210,7 +213,6 @@ async function populationNearStatue() {
         throw error;
     }
 }
-let statuePopulation;
 
 (async () => {
     try {
@@ -274,7 +276,6 @@ map.on('load', () => {
         });
       }
       
-      // Add Willis Tower image
       addImageLayer(
         '/images/willis-tower.png',
         'willis-tower',
@@ -283,7 +284,6 @@ map.on('load', () => {
         0.048
       );
       
-      // Add Statue of Liberty image
       addImageLayer(
         '/images/statue-of-liberty.png',
         'statue-of-liberty',
@@ -292,7 +292,8 @@ map.on('load', () => {
         0.04
       );
       
-    
+    //Code to generate dots for the closest 20 zips near Willis Tower
+
     (async () => {
         try {
             const geojson = await zipsNearWillis();
@@ -316,6 +317,8 @@ map.on('load', () => {
             console.error('Error:', error);
         }
     })();
+
+    //Code to generate a layer to represent the states with a population over 10 million
 
     (async () => {
         try {
@@ -385,6 +388,8 @@ map.on('load', () => {
         }
     })();
 
+    //Code to generate a layer to represent the smallest county in a state
+
     (async () => {
         try {
             let smallestCounties = await smallestCounty();
@@ -432,6 +437,8 @@ map.on('load', () => {
             console.error('Error:', error);
         }
     })();
+
+    //Code to generate a layer to represent the largest county in a state
 
     (async () => {
         try {
@@ -482,56 +489,62 @@ map.on('load', () => {
         }
     })();
 
-    const centerCoordinates = [-74.044502, 40.689247];
+    //Function to generate a circle to represent the population between 50 and 200kms around the Statue of Liberty
 
-    const options = {
-        units: 'kilometers'
-    };
-
-    const outerRadius = 200;
-    const innerRadius = 50;
-
-    const outerCircle = turf.circle(centerCoordinates, outerRadius, options);
-    const innerCircle = turf.circle(centerCoordinates, innerRadius, options);
-
-    const shape = turf.difference(outerCircle, innerCircle);
-
-    map.addSource('circle-source', {
-        type: 'geojson',
-        data: shape,
-    });
-
-    map.addLayer({
-        id: 'circle-layer',
-        type: 'fill',
-        source: 'circle-source',
-        layout: {
+    function generateCircleAroundStatue() {
+        const statueCoordinates = [-74.044502, 40.689247];
+        const options = {
+          units: 'kilometers'
+        };
+        const outerRadius = 200;
+        const innerRadius = 50;
+      
+        const outerCircle = turf.circle(statueCoordinates, outerRadius, options);
+        const innerCircle = turf.circle(statueCoordinates, innerRadius, options);
+      
+        const shape = turf.difference(outerCircle, innerCircle);
+      
+        map.addSource('circle-source', {
+          type: 'geojson',
+          data: shape,
+        });
+      
+        map.addLayer({
+          id: 'circle-layer',
+          type: 'fill',
+          source: 'circle-source',
+          layout: {
             'visibility': 'none'
-        },
-        paint: {
+          },
+          paint: {
             'fill-color': '#ff0000',
             'fill-opacity': 0.5
-        },
-    });
+          },
+        });
+      
+        const statuePopup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false
+        });
+      
+        map.on('mousemove', 'circle-layer', (e) => {
+          const population = statuePopulation;
+          if (population) {
+            statuePopup
+              .setLngLat(e.lngLat)
+              .setHTML(`<h3>Population around Statue of Liberty</h3><p>Population in the range 50 to 200 kilometers around the Statue: ${population.totalPopulation}</p>`)
+              .addTo(map);
+          }
+        });
+      
+        map.on('mouseleave', 'circle-layer', () => {
+          statuePopup.remove();
+        });
+    }
+      
+    generateCircleAroundStatue();
 
-    const statuePopup = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false
-    });
-
-    map.on('mousemove', 'circle-layer', (e) => {
-
-        const population = statuePopulation;
-        if (population) {
-            statuePopup.setLngLat(e.lngLat)
-                .setHTML(`<h3>Population around Statue of Liberty</h3><p>Population in the range 50 to 200 kilometers around the Statue: ${population.totalPopulation}</p>`)
-                .addTo(map);
-        }
-    });
-
-    map.on('mouseleave', 'circle-layer', () => {
-        statuePopup.remove();
-    });
+    //Code to generate a population marker in the middle of each state
 
     (async () => {
         try {
@@ -583,6 +596,8 @@ map.on('load', () => {
         }
     })();
     
+    //Code to generate a marker for the smallest city in a state
+
     (async () => {
         try {
             const geojson = await smallestCity();
@@ -628,6 +643,8 @@ map.on('load', () => {
             console.error('Error:', error);
         }
     })();
+
+    //Code to generate a marker for the largest city in a state
 
     (async () => {
         try {
