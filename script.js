@@ -99,7 +99,7 @@ async function smallestCity() {
     try {
         const response = await fetch('http://localhost:3000/population/smallest-city');
         const data = await response.json();
-        console.log(data);
+
         const features = data.map(city => ({
             type: 'Feature',
             geometry: {
@@ -241,6 +241,8 @@ map.on('load', () => {
         'type': 'geojson',
         'data': '/counties.geojson'
     });
+    
+    //Function to add images to represent the landmarks
 
     function addImageLayer(imageUrl, imageId, coordinates, layerId, iconSize) {
         map.loadImage(imageUrl, (error, image) => {
@@ -313,6 +315,7 @@ map.on('load', () => {
                     'circle-radius': 4,
                 },
             });
+
         } catch (error) {
             console.error('Error:', error);
         }
