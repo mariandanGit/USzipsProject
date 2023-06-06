@@ -8,14 +8,6 @@ USzipsProject
 # Description
 MongoDB project that makes statistical computations on a US zips dataset. It uses Mapbox GL JS as the API to render a map for interactivity.
 
-## Requirements
-1. Get the states with a total population of over 10 million.
-2. Get the average city population by state.
-3. Get the largest and the smallest city in each state.
-4. Get the largest and the smallest counties in each state.
-5. Get the nearest 10 zips from one of Chicago's landmarks, the Willis Tower situated at coordinates 41.878876, -87.635918.
-6. Get the total population situated between 50 and 200 kms around New York's landmark, the Statue of Liberty at coordinates 40.689247, -74.044502.
-
 # Technologies Used
 - Node.js
 - MongoDB
