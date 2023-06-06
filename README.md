@@ -9,6 +9,7 @@ MongoDB project that makes statistical computations on a US zips dataset. It use
 - MongoDB
 - Express.js
 - HTML/CSS/JavaScript
+- Mapbox GL JS
 
 # License
 MIT
